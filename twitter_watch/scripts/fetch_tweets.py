@@ -239,7 +239,7 @@ def main():
 
     # ── Markdown report ───────────────────────────────────────────────────────
     REPORTS_DIR.mkdir(exist_ok=True)
-    report_name = f"report_{now.strftime('%Y-%m-%d_%H-%M')}.md"
+    report_name = f"report_{now.astimezone(HKT).strftime('%Y-%m-%d_%H-%M')}.md"
     report_path = REPORTS_DIR / report_name
 
     total = sum(len(tweets) for _, tweets in results)
@@ -273,7 +273,7 @@ def main():
     print(f"Report saved to: {report_path}")
 
     # ── Telegram report ───────────────────────────────────────────────────────
-    tg_name = f"report_{now.strftime('%Y-%m-%d_%H-%M')}_telegram.txt"
+    tg_name = f"report_{now.astimezone(HKT).strftime('%Y-%m-%d_%H-%M')}_telegram.txt"
     tg_path = REPORTS_DIR / tg_name
 
     tg_lines = [
