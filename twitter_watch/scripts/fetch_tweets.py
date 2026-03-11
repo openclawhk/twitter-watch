@@ -255,6 +255,41 @@ def main():
     report_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Report saved to: {report_path}")
 
+    # ── Telegram report ───────────────────────────────────────────────────────
+    tg_name = f"report_{now.strftime('%Y-%m-%d_%H-%M')}_telegram.txt"
+    tg_path = REPORTS_DIR / tg_name
+
+    tg_lines = [
+        f"📊 Twitter 日报 · {now.astimezone(HKT).strftime('%Y-%m-%d %H:%M HKT')}",
+        f"共 {total} 条推文 · 过去 24 小时",
+    ]
+
+    for acc, tweets in results:
+        handle = acc["handle"]
+        alias  = acc.get("alias", handle)
+        tg_lines.append(f"\n━━━━━━━━━━━━━━━━━━━")
+        tg_lines.append(f"@{handle}  {alias}  ({len(tweets)} 条)")
+        tg_lines.append(f"━━━━━━━━━━━━━━━━━━━")
+        if not tweets:
+            tg_lines.append("（过去 24 小时无推文）")
+        for t in tweets:
+            created = parse_date(t.get("createdAt", ""))
+            time_str = created.astimezone(HKT).strftime("%m-%d %H:%M") if created else "?"
+            text = t.get("text", "")
+            url = t.get("url", "")
+            likes = t.get("likeCount", 0)
+            retweets = t.get("retweetCount", 0)
+            media_urls = get_media_urls(t)
+
+            tg_lines.append(f"\n🕐 {time_str} HKT")
+            tg_lines.append(text)
+            for mu in media_urls:
+                tg_lines.append(mu)
+            tg_lines.append(f"❤ {likes}  🔁 {retweets}  🔗 {url}")
+
+    tg_path.write_text("\n".join(tg_lines), encoding="utf-8")
+    print(f"Telegram report saved to: {tg_path}")
+
 
 if __name__ == "__main__":
     main()
