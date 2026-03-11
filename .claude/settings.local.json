@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python3:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(gh auth:*)",
+      "Bash(git:*)",
+      "WebFetch(domain:docs.twitterapi.io)",
+      "WebFetch(domain:twitterapi.io)"
     ]
   }
 }
