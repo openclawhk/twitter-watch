@@ -147,6 +147,28 @@ def parse_date(s: str) -> datetime | None:
     return None
 
 
+def normalize_caps(text: str) -> str:
+    """Convert ALL CAPS text to title case, leave mixed-case text unchanged."""
+    import re
+    # Strip URLs and punctuation to check if text is mostly uppercase
+    letters = re.sub(r'https?://\S+|[^a-zA-Z]', '', text)
+    if not letters or sum(1 for c in letters if c.isupper()) / len(letters) < 0.8:
+        return text
+    # Title-case each line, preserving URLs
+    def cap_line(line: str) -> str:
+        # Split into tokens, title-case non-URL tokens
+        tokens = line.split(' ')
+        result = []
+        for token in tokens:
+            if re.match(r'https?://', token):
+                result.append(token)
+            else:
+                # Fix apostrophe issue: "Iran'S" → "Iran's"
+                result.append(re.sub(r"'([A-Z])", lambda m: "'" + m.group(1).lower(), token.title()))
+        return ' '.join(result)
+    return "\n".join(cap_line(l) for l in text.splitlines())
+
+
 def get_media_urls(tweet: dict) -> list[str]:
     """Extract image/video URLs from extendedEntities."""
     media_items = tweet.get("extendedEntities", {}).get("media", [])
@@ -159,37 +181,32 @@ def get_media_urls(tweet: dict) -> list[str]:
 
 
 def format_tweet_terminal(tweet: dict) -> str:
-    text = tweet.get("text", "")
+    text = normalize_caps(tweet.get("text", ""))
     created = parse_date(tweet.get("createdAt", ""))
     time_str = created.astimezone(HKT).strftime("%m-%d %H:%M HKT") if created else "unknown time"
     url = tweet.get("url", "")
-    likes = tweet.get("likeCount", 0)
-    retweets = tweet.get("retweetCount", 0)
     media_urls = get_media_urls(tweet)
 
-    # Indent continuation lines to align with text
     indented_text = text.replace("\n", "\n         ")
     lines = [f"  [{time_str}] {indented_text}"]
     for mu in media_urls:
         lines.append(f"  [图片] {mu}")
-    lines.append(f"  ↗ {url}  ❤ {likes}  🔁 {retweets}")
+    lines.append(f"  ↗ {url}")
     return "\n".join(lines)
 
 
 def format_tweet_markdown(tweet: dict) -> str:
-    text = tweet.get("text", "")
+    text = normalize_caps(tweet.get("text", ""))
     created = parse_date(tweet.get("createdAt", ""))
     time_str = created.astimezone(HKT).strftime("%Y-%m-%d %H:%M HKT") if created else "unknown time"
     url = tweet.get("url", "")
-    likes = tweet.get("likeCount", 0)
-    retweets = tweet.get("retweetCount", 0)
     media_urls = get_media_urls(tweet)
 
     text_escaped = text.replace("|", "\\|").replace("\n", "  \n")
     lines = [f"**[{time_str}]** {text_escaped}"]
     for mu in media_urls:
         lines.append(f"![]({mu})")
-    lines.append(f"[Link]({url}) · ❤ {likes} · 🔁 {retweets}")
+    lines.append(f"[Link]({url})")
     return "  \n".join(lines)
 
 
@@ -275,17 +292,15 @@ def main():
         for t in tweets:
             created = parse_date(t.get("createdAt", ""))
             time_str = created.astimezone(HKT).strftime("%m-%d %H:%M") if created else "?"
-            text = t.get("text", "")
+            text = normalize_caps(t.get("text", ""))
             url = t.get("url", "")
-            likes = t.get("likeCount", 0)
-            retweets = t.get("retweetCount", 0)
             media_urls = get_media_urls(t)
 
             tg_lines.append(f"\n🕐 {time_str} HKT")
             tg_lines.append(text)
             for mu in media_urls:
                 tg_lines.append(mu)
-            tg_lines.append(f"❤ {likes}  🔁 {retweets}  🔗 {url}")
+            tg_lines.append(f"🔗 {url}")
 
     tg_path.write_text("\n".join(tg_lines), encoding="utf-8")
     print(f"Telegram report saved to: {tg_path}")
